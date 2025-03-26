@@ -1,0 +1,90 @@
+#include "user.h"
+
+char*
+fmtname(char *path)
+{
+  static char buf[DIRSIZ+1];
+  char *p;
+
+  // Find first character after last slash.
+  for(p=path+strlen(path); p >= path && *p != '/'; p--)
+    ;
+  p++;
+
+  // Return blank-padded name.
+  if(strlen(p) >= DIRSIZ)
+    return p;
+  memmove(buf, p, strlen(p));
+  memset(buf+strlen(p), ' ', DIRSIZ-strlen(p));
+  return buf;
+}
+
+// quest: shell
+void
+ls(char *path)
+{
+  char buf[512], *p;
+  int fd;
+  struct dirent de;
+  struct stat st;
+  FILINFO info; // fat
+
+  if((fd = open(path, 0)) < 0){
+    fprintf(2, "ls: cannot open %s\n", path);
+    return;
+  }
+
+  if(fstat(fd, &st) < 0){
+    fprintf(2, "ls: cannot stat %s\n", path);
+    close(fd);
+    return;
+  }
+
+  switch(st.type){
+  case T_DEVICE:
+  case T_FILE:
+  case T_FILE_FAT:
+    // print filename, type, inode number, size
+    /* STUDENT_TODO: your code here */
+    break;
+
+  case T_DIR: // open the dir file and parse per entry
+    if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
+      printf("ls: path too long\n");
+      break;
+    }
+    strcpy(buf, path);
+    p = buf+strlen(buf);
+    *p++ = '/';
+    while(read(fd, &de, sizeof(de)) == sizeof(de)){
+      // iterate over each entry and print out the name, type, inode number, size
+       
+      /* STUDENT_TODO: your code here */
+    }
+    break;
+
+  case T_DIR_FAT:
+    printf("--- FAT dir --- \n");
+    printf("%s  attr  sz\n", fmtname("name"));
+    while (read(fd, &info, sizeof(info)) == sizeof(info)) {
+      printf("%s %d %d\n", fmtname(info.fname), info.fattrib, info.fsize);
+    }
+    break;    
+  }
+
+  close(fd);
+}
+
+int
+main(int argc, char *argv[])
+{
+  int i;
+
+  if(argc < 2){
+    ls(".");
+    exit(0);
+  }
+  for(i=1; i<argc; i++)
+    ls(argv[i]);
+  exit(0);
+}

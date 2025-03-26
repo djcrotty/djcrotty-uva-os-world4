@@ -1,0 +1,7 @@
+build/*
+build-lib/*
+mkfs
+*.a
+**/*.a
+doomgeneric/
+libc-testsuite/

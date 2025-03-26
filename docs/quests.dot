@@ -1,0 +1,39 @@
+// dot -Tpng quests.dot -o quests.png
+
+// | Quest      | Description                                                                                  | Credits |
+// |------------|----------------------------------------------------------------------------------------------|---------|
+// | [Quest01: shell](#quest01-shell)    | Implement basic shell functionality (`sh`, `ls`, `cat`).                                | 25      |
+// | [Quest02: kungfu](#quest02-kungfu)   | Bring up NES game in userspace. Handle framebuffer and display-related filesystems.     | 25      |
+// | [Quest03: initrc](#quest03-side-initrc)   | Auto-execute commands at boot using `read_init_cmd` in `sh`.                            | 5      |
+// | [Quest04: mario with inputs](#quest04-mario-with-inputs) | Integrate keyboard controls into NES. Play the game with keyboard inputs.      | 25      |
+// | [Quest05: mario on rpi3](#quest05-side-mario-on-rpi3) | Reproduce NES game with keyboard control on Raspberry Pi 3.                        | 25      |
+// | [Quest06: slider](#quest06-slider)   | Develop a slider app to display BMP images controlled by keyboard inputs.               | 20      |
+// | [Quest07: large files](#quest07-large-files) | Extend filesystem by modifying inode structure and mkfs tool. | 20      |
+// | [Quest08: sound](#quest08-sound)    | Implement sound functionality on Raspberry Pi 3, including driver and user-space app.   | 40      |
+
+digraph QuestDependencies {
+    // Define node styles
+    node [shape=box, style=filled, color=lightblue];
+
+    // Define the edges based on the relations
+    quest01 -> quest03;
+    quest01 -> quest02;
+    quest02 -> quest08;
+    quest02 -> quest04;
+    quest04 -> quest06;
+    quest06 -> quest07;
+    quest04 -> quest05;
+    
+    // Define nodes with updated labels based on comments
+    quest01 [label="Quest01: shell\nImplement basic shell functionality (`sh`, `ls`, `cat`).\nCredits: 25"];
+    quest02 [label="Quest02: kungfu\nBring up NES game in userspace. Handle framebuffer and display-related filesystems.\nCredits: 25"];
+    quest03 [label="Quest03: initrc\nAuto-execute commands at boot using `read_init_cmd` in `sh`.\nCredits: 5"];
+    quest04 [label="Quest04: mario with inputs\nIntegrate keyboard controls into NES. Play the game with keyboard inputs.\nCredits: 25"];
+    quest05 [label="Quest05: mario on rpi3\nReproduce NES game with keyboard control on Raspberry Pi 3.\nCredits: 25"];
+    quest06 [label="Quest06: slider\nDevelop a slider app to display BMP images controlled by keyboard inputs.\nCredits: 20"];
+    quest07 [label="Quest07: large files\nExtend filesystem by modifying inode structure and mkfs tool.\nCredits: 20"];
+    quest08 [label="Quest08: sound\nImplement sound functionality on Raspberry Pi 3, including driver and user-space app.\nCredits: 40"];
+
+    // Set graph layout
+    // rankdir=LR; // Left to Right layout
+}
