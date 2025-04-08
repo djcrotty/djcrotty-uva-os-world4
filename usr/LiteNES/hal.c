@@ -115,6 +115,17 @@ void wait_for_frame()
             assert(ev.scancode<NUM_SCANCODES); 
             // printf("key code %d %s\n", ev.scancode, ev.type == EV_KEYDOWN ? "down":"up");
             /* STUDENT_TODO: your code here */
+            // update key state
+            key_states[ev.scancode] = ev.type;
+            // if (ev.type == EV_KEYDOWN) {
+            //     if (key_states[ev.scancode] == EV_KEYUP) {
+            //         key_states[ev.scancode] = EV_KEYDOWN;
+            //     }
+            // } else if (ev.type == EV_KEYUP) {
+            //     if (key_states[ev.scancode] == EV_KEYDOWN) {
+            //         key_states[ev.scancode] = EV_KEYUP;
+            //     }
+            // }
             break;      // continue to wait for timer ev   
         default:
             printf("unknown ev"); exit(1); 
@@ -223,7 +234,7 @@ void nes_hal_init() {
     if (fork() == 0)  { 
         close(fds[0]);
         // open the keyboard device file
-        int events = 0; /* STUDENT_TODO: replace this */
+        int events = open("/dev/events", O_RDWR); /* STUDENT_TODO: replace this */
         assert(events>0);
         int evtype; unsigned int scancode; 
         printf("input task running\n");
@@ -234,7 +245,12 @@ void nes_hal_init() {
                 printf("read_kb_event failed\n"); 
             } else { // pass the kb event to main task 
                 // printf("evtype %d scancode %d\n", evtype, (int)scancode); 
-                 
+                ev.type = evtype;
+                ev.scancode = scancode;
+                if (write(fds[1], &ev, sizeof ev) != sizeof ev) {
+                    printf("write kbevent failed\n");
+                    exit(1);
+                }
                 /* STUDENT_TODO: your code here */
             }
         }
@@ -243,7 +259,7 @@ void nes_hal_init() {
     close(fds[1]); 
 
     // open the framebuffer device 
-    fb = open("/dev/??", 0); /* STUDENT_TODO: replace this */
+    fb = open("/dev/fb", O_RDWR); /* STUDENT_TODO: replace this */
     assert(fb>0); 
     
     // Configure fb hardware via procfs
@@ -295,6 +311,14 @@ void nes_flip_display()
 #else
      
     /* STUDENT_TODO: your code here */
+    int sz = vtx_sz; // size of the framebuffer
+    n = lseek(fb, 0, SEEK_SET); // seek to the beginning of the framebuffer
+    assert(n == 0);
+    if ((n = write(fb, vtx, sz)) != sz) {
+        printf("%s: failed to write to hw fb. fb %d sz %d ret %d\n",
+            __func__, fb, sz, n);
+    }
+
 #endif
 }
 
@@ -307,21 +331,21 @@ int nes_key_state(int b)
         case 0: // On / Off
             return 1;
         case 1: // A  (k)
-            return 0; /* STUDENT_TODO: replace this */
+            return key_states[KEY_K] == EV_KEYDOWN ? 1 : 0; /* STUDENT_TODO: replace this */
         case 2: // B  (j)
-            return 0; /* STUDENT_TODO: replace this */
+            return key_states[KEY_B] == EV_KEYDOWN ? 1 : 0; /* STUDENT_TODO: replace this */
         case 3: // SELECT (u)
-            return 0; /* STUDENT_TODO: replace this */
+            return key_states[KEY_U] == EV_KEYDOWN ? 1 : 0; /* STUDENT_TODO: replace this */
         case 4: // START  (i)
-            return 0; /* STUDENT_TODO: replace this */
+            return key_states[KEY_I] == EV_KEYDOWN ? 1 : 0; /* STUDENT_TODO: replace this */
         case 5: // UP  (w)
-            return 0; /* STUDENT_TODO: replace this */
+            return key_states[KEY_W] == EV_KEYDOWN ? 1 : 0; /* STUDENT_TODO: replace this */
         case 6: // DOWN (s)
-            return 0; /* STUDENT_TODO: replace this */
+            return key_states[KEY_S] == EV_KEYDOWN ? 1 : 0; /* STUDENT_TODO: replace this */
         case 7: // LEFT (a)
-            return 0; /* STUDENT_TODO: replace this */
+            return key_states[KEY_A] == EV_KEYDOWN ? 1 : 0; /* STUDENT_TODO: replace this */
         case 8: // RIGHT (d)
-            return 0; /* STUDENT_TODO: replace this */
+            return key_states[KEY_D] == EV_KEYDOWN ? 1 : 0; /* STUDENT_TODO: replace this */
         default:
             return 1;
     }

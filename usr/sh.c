@@ -177,7 +177,7 @@ static int create_dev_procfs(void) {
   int fd; 
 
   // create /proc/xxx with open()
-  if (1) { /* STUDENT_TODO: replace this */
+  if (mkdir("/proc") != 0) { /* STUDENT_TODO: replace this */
     printf("failed to create /proc"); 
     goto mkdev; 
   }
@@ -186,6 +186,10 @@ static int create_dev_procfs(void) {
     if (p->type != TYPE_PROCFS) continue; 
      
     /* STUDENT_TODO: your code here */
+    if ((fd=open(p->path, O_CREATE)) < 0) {
+      printf("failed to create %s", p->path); 
+      return -1; 
+    }
   }
 
   // create /dev/xxx with mknod()
@@ -199,6 +203,10 @@ mkdev:
     if (p->type != TYPE_DEVFS) continue; 
      
     /* STUDENT_TODO: your code here */
+    if(mknod(p->path, p->major, 0) < 0) {
+      printf("failed to create %s", p->path); 
+      return -1; 
+    }
   }
   return 0; 
 }
@@ -229,9 +237,25 @@ void run_nes() {
 #define INITCMD_MAX 512
 char init_cmds[INITCMD_MAX] = {0}; // max init cmd; 
 int read_init_cmd() {
-   
+  int fd = open("init_cmd.txt", O_RDONLY);
+  if (fd < 0) {
+    printf("failed to open init_cmd.txt\n");
+    return -1;
+  }
+
+  int n = read(fd, init_cmds, sizeof(init_cmds) - 1);
+  if (n < 0) {
+    printf("failed to read init_cmd.txt\n");
+    close(fd);
+    return -1;
+  }
+
+  init_cmds[n] = '\0'; // Null-terminate the read data
+  close(fd);
+  return n;
   /* STUDENT_TODO: your code here */
-  return 0; /* STUDENT_TODO: replace this */
+
+  // return 0; /* STUDENT_TODO: replace this */
 }
 
 int

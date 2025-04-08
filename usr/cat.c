@@ -11,7 +11,7 @@ cat(int fd)
   // read until returning 0
   while((n = read(fd, buf, sizeof(buf))) > 0) {
     // write whatever chars read to stdout
-     
+    printf("%s", buf);
     /* STUDENT_TODO: your code here */
   }
   if(n < 0){

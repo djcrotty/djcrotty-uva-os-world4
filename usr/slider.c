@@ -73,19 +73,32 @@ void* BMP_Load(const char *filename, int *width, int *height) {
   if (hdr.compression != 0) return 0;
   int w = hdr.width;
   int h = hdr.height;
+  // printf("bmp: %s, %d x %d\n", filename, w, h);
   uint32_t *pixels = malloc(w * h * sizeof(uint32_t));  // each pixel 4bytes
   assert(pixels); 
   
   int line_off = (w * 3 + 3) & ~0x3;
+  uint8_t *tmpPixels = malloc(3 * w);
   for (int i = 0; i < h; i ++) {
     lseek(fd, hdr.offset + (h - 1 - i) * line_off, SEEK_SET);
-    nread = read(fd, &pixels[w * i], 3*w);  assert(nread==3*w); // read a row
-    // reshape a row (backward): a pixel from r/g/b to 0/r/g/b, then write
-    // back to "pixels"
+    nread = read(fd, tmpPixels, 3*w);  assert(nread==3*w); // read a row
+    // // reshape a row (backward): a pixel from r/g/b to 0/r/g/b, then write
+    // // back to "pixels"
+  
+    // /* STUDENT_TODO: your code here */
+
+    // // reshape a row (backward): a pixel from b/g/r to 0/r/g/b, then write
+    for (int j = 0; j < w; j++) {
+      uint8_t b = tmpPixels[j*3];
+      uint8_t g = tmpPixels[j*3+1];
+      uint8_t r = tmpPixels[j*3+2];
+      pixels[w * i + j] = (0xFF<<24) | (r<<16) | (g<<8) | b;
+    }
      
     /* STUDENT_TODO: your code here */
+    
   }
-
+  free(tmpPixels);
   close(fd); 
   if (width) *width = w;
   if (height) *height = h;
@@ -121,11 +134,16 @@ void set_bkgnd(unsigned int clr, int pitch /*in bytes*/, int h) {
 
     // fill the buffer with a single color
     /* STUDENT_TODO: your code here */
+    for (int i = 0; i < (pitch/PIXELSIZE) * h; i++)
+      p[i] = clr;
     
     // reset the file pointer to the beginning of the fb
     /* STUDENT_TODO: your code here */
+    int n = lseek(fb, 0, SEEK_SET); assert(n>=0);
 
     // write the buffer to the file descriptor "fb"
+    if (write(fb, p, pitch*h) < pitch*h)
+      printf("failed to write fb\n");
      
     /* STUDENT_TODO: your code here */
 
@@ -151,6 +169,7 @@ void set_bkgnd0(unsigned int clr, int w, int h) {
 // return 0 on success; <0 on err 
 // quest: slider
 int render() {
+
   char fname[256];
   int w, h; 
   int t0=uptime();
@@ -179,15 +198,27 @@ int render() {
   } else {
     fb_w = min(W,w), fb_h = min(H,h);
   }
+  set_bkgnd(0x00ffffff /*white*/, dispinfo[PITCH], dispinfo[VHEIGHT]);
 
   // printf("%s:img size: w %d h %d; canvas w %d h %d\n", fname, w, h, fb_w, fb_h); 
   assert(fb); 
   int n, y; 
   if (config_isfb) {  
     int pitch = dispinfo[PITCH];     
-    // write to /dev/fb by row 
-     
+    // write to /dev/fb by row      
     /* STUDENT_TODO: your code here */
+    n = lseek(fb, 0, SEEK_SET); assert(n==0);
+    for(y=0;y<fb_h;y++) {
+      // seek to the start of the row in fb
+      n = lseek(fb, y*pitch, SEEK_SET); assert(n==y*pitch);
+      // write the row to fb
+      if ((n = write(fb, pixels+y*w*PIXELSIZE, fb_w*PIXELSIZE)) < fb_w*PIXELSIZE) {
+        printf("failed to write (row %d) to fb\n", y); 
+        break; 
+      }
+      // printf("written row %d %d\n", y, n);
+    }
+
   } else {  // write to /dev/fb0 by row     
     // (TBD add a fast path when only 1 write is needed
     n = lseek(fb, 0, SEEK_SET); assert(n==0); 
@@ -264,7 +295,8 @@ int main(int argc, char **argv) {
     set_bkgnd0(0x00ffffff /*white*/, W, H);
 
   render();
-  
+
+  printf("initial render");
   /* main loop. read & handle keydown event, switch among slides */
   int evtype = INVALID;
   unsigned scancode = 0; 
@@ -272,6 +304,7 @@ int main(int argc, char **argv) {
     evtype = INVALID; scancode = 0;
      
     /* STUDENT_TODO: your code here */
+    n = read_kb_event(events, &evtype, &scancode);
     
     if (evtype == KEYDOWN) {
       switch(scancode) {

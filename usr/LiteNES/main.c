@@ -40,6 +40,30 @@ int main(int argc, char *argv[])
     // to the memory buffer
      
     /* STUDENT_TODO: your code here */
+    // open the rom file
+    fd = open(argv[1], O_RDONLY);
+    if (fd < 0) {
+        fprintf(stderr, "Unable to open rom file %s\n", argv[1]);
+        exit(1);
+    }
+    // read the rom file into the buffer
+    // get the size of the file
+    struct stat st;
+    if (fstat(fd, &st) != 0) {
+      fprintf(stderr, "Unable to get file size for %s\n", argv[1]);
+      exit(1);
+    }
+    uint64 file_size = st.size;
+    if (file_size > sizeof(rom)) {
+      fprintf(stderr, "Rom file %s is too large to fit in memory\n", argv[1]);
+      exit(1);
+    }
+    int n = read(fd, rom, file_size);;
+    if (n <= 0) {
+        fprintf(stderr, "Unable to read rom file %s\n", argv[1]);
+        exit(1);
+    }
+    close(fd); // close the file descriptor
     
     printf("open rom...ok\n"); 
 load: 

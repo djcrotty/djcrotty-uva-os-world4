@@ -238,7 +238,7 @@ ialloc(ushort type)
 // the original design, kept for reference. 
 //  can only handle one bitmap block 
 void
-balloc(int used)   
+balloc0(int used)   
 {
   uchar buf[BSIZE];
   int i;
@@ -259,13 +259,30 @@ balloc(int used)
 // cf above: orig design, can only handle one bitmap block ... 
 // quest: large files 
 void
-balloc_ext(int used)   
+balloc(int used)   
 {
   uchar buf[BSIZE];
   int i, k = 0;
 
-  printf("balloc: first %d blocks have been allocated\n", used);
+  printf("balloc_ext: first %d blocks have been allocated\n", used);
+  int total_blocks = used;
+  int bitmap_block = 0;
 
+  while (total_blocks > 0) {
+    bzero(buf, BSIZE);
+    int blocks_to_allocate = min(total_blocks, BSIZE * 8);
+
+    for (i = 0; i < blocks_to_allocate; i++) {
+      buf[i / 8] = buf[i / 8] | (0x1 << (i % 8));
+    }
+
+    printf("balloc_ext: write bitmap block at sector %d\n", sb.bmapstart + bitmap_block);
+    wsect(sb.bmapstart + bitmap_block, buf);
+
+    total_blocks -= blocks_to_allocate;
+    bitmap_block++;
+  }
+  // fxl: write the rest of the bitmap blocks
    
   /* STUDENT_TODO: your code here */
 }
@@ -307,7 +324,20 @@ iappend(uint inum, void *xp, int n)
       }
       x = xint(indirect[fbn-NDIRECT]);
     } else {    // doubly indirect ptr ...
-       
+      if(xint(din.addrs[NDIRECT+1]) == 0){
+        din.addrs[NDIRECT+1] = xint(freeblock++);
+      }
+      rsect(xint(din.addrs[NDIRECT+1]), (char*)indirect2);
+      if(indirect2[(fbn - (NDIRECT+NINDIRECT))/ NINDIRECT] == 0){
+        indirect2[(fbn - (NDIRECT+NINDIRECT)) / NINDIRECT] = xint(freeblock++);
+        wsect(xint(din.addrs[NDIRECT+1]), (char*)indirect2);
+      }
+      rsect(xint(indirect2[(fbn - (NDIRECT+NINDIRECT)) / NINDIRECT]), (char*)indirect);
+      if(indirect[(fbn - (NDIRECT+NINDIRECT)) % NINDIRECT] == 0){
+        indirect[(fbn - (NDIRECT+NINDIRECT)) % NINDIRECT] = xint(freeblock++);
+        wsect(xint(indirect2[(fbn - (NDIRECT+NINDIRECT)) / NINDIRECT]), (char*)indirect);
+      }
+      x = xint(indirect[(fbn - (NDIRECT+NINDIRECT)) % NINDIRECT]);
       /* STUDENT_TODO: your code here */
       // printf("alloc fbn %u idx %d idx2 %d baddr %u\n", fbn, idx, idx2, x);
     }

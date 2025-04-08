@@ -480,8 +480,37 @@ bmap(struct inode *ip, uint bn)
 
   // doubly indirect ptr, can mimic the logic above.
   if (bn < NINDIRECT * NINDIRECT) {
-       
+      
       /* STUDENT_TODO: your code here */
+      // Load doubly indirect block, allocating if necessary.
+      if((addr = ip->addrs[NDIRECT+1]) == 0){
+          addr = balloc(ip->dev);
+          if(addr == 0)
+              return 0;
+          ip->addrs[NDIRECT+1] = addr;
+      }
+      bp = bread(ip->dev, addr);
+      a = (uint*)bp->data;
+      // Load indirect block, allocating if necessary.
+      if((addr = a[bn/NINDIRECT]) == 0){
+          addr = balloc(ip->dev);
+          if(addr == 0)
+              return 0;
+          a[bn/NINDIRECT] = addr;
+          log_write(bp);
+      }
+      brelse(bp);
+      bp = bread(ip->dev, a[bn/NINDIRECT]);
+      a = (uint*)bp->data;
+      if((addr = a[bn%NINDIRECT]) == 0){
+          addr = balloc(ip->dev);
+          if(addr){
+              a[bn%NINDIRECT] = addr;
+              log_write(bp);
+          }
+      }
+      brelse(bp);
+      
       return addr;
   }
 
